@@ -1,3 +1,15 @@
+## Project Status
+
+Hive is a conceptual model for evolutionary software development.
+
+This repository serves as:
+- a public articulation of an idea,
+- a space for discussion and refinement,
+- not a production-ready methodology or implementation.
+
+The model is expected to evolve over time.
+
+
 # Hive: Evolutionary Software Development Model v1.2
 
 ## 1. Introduction
