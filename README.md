@@ -181,5 +181,5 @@ This model is suitable for software system development contexts characterized by
 
 ## Authorship
 
-This model was originally articulated by Lu Yao-Chi.
+This model was originally articulated by Lu Yao-Chi(Ji).
 
