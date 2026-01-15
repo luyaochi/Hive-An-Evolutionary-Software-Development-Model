@@ -178,3 +178,8 @@ Hive aims to:
 > Hive is an evolution-centered decision model that supports a small number of critical structural commitments through extensive low-cost exploration.
 
 This model is suitable for software system development contexts characterized by long time horizons, high uncertainty, and dense irreversible decisions.
+
+## Authorship
+
+This model was originally articulated by Lu Yao-Chi.
+
