@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker B - 用戶認證系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="app-container">
+            <!-- Header -->
+            <div class="header">
+                <h1>🔐 Worker B 認證系統</h1>
+                <div class="user-info" id="headerUserInfo" style="display: none;">
+                    <span class="user-badge" id="headerUsername"></span>
+                    <button class="btn btn-logout" id="logoutBtn">登出</button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Alert Container -->
+                <div id="alertContainer"></div>
+
+                <!-- Login View -->
+                <div id="loginView" class="auth-container">
+                    <div class="auth-form">
+                        <h2 class="form-title">歡迎回來</h2>
+                        <p class="form-subtitle">請登錄您的帳戶</p>
+
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label for="loginUsername" class="form-label">用戶名</label>
+                                <input
+                                    type="text"
+                                    id="loginUsername"
+                                    class="form-input"
+                                    placeholder="請輸入用戶名"
+                                    required
+                                    autocomplete="username"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="loginPassword" class="form-label">密碼</label>
+                                <input
+                                    type="password"
+                                    id="loginPassword"
+                                    class="form-input"
+                                    placeholder="請輸入密碼"
+                                    required
+                                    autocomplete="current-password"
+                                >
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">登錄</button>
+                        </form>
+
+                        <div class="form-toggle">
+                            還沒有帳戶？ <a href="#" id="showRegister">立即註冊</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Register View -->
+                <div id="registerView" class="auth-container hidden">
+                    <div class="auth-form">
+                        <h2 class="form-title">創建新帳戶</h2>
+                        <p class="form-subtitle">註冊以開始使用</p>
+
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <label for="registerUsername" class="form-label">用戶名</label>
+                                <input
+                                    type="text"
+                                    id="registerUsername"
+                                    class="form-input"
+                                    placeholder="請輸入用戶名（3-50 字符）"
+                                    required
+                                    minlength="3"
+                                    maxlength="50"
+                                    autocomplete="username"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerPassword" class="form-label">密碼</label>
+                                <input
+                                    type="password"
+                                    id="registerPassword"
+                                    class="form-input"
+                                    placeholder="請輸入密碼（6-100 字符）"
+                                    required
+                                    minlength="6"
+                                    maxlength="100"
+                                    autocomplete="new-password"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerConfirmPassword" class="form-label">確認密碼</label>
+                                <input
+                                    type="password"
+                                    id="registerConfirmPassword"
+                                    class="form-input"
+                                    placeholder="請再次輸入密碼"
+                                    required
+                                    autocomplete="new-password"
+                                >
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">註冊</button>
+                        </form>
+
+                        <div class="form-toggle">
+                            已有帳戶？ <a href="#" id="showLogin">立即登錄</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard View -->
+                <div id="dashboardView" class="dashboard hidden">
+                    <div class="dashboard-header">
+                        <h2 class="dashboard-title">歡迎，<span id="dashboardUsername"></span>！</h2>
+                        <p class="dashboard-subtitle">這是您的用戶資訊和認證令牌</p>
+                    </div>
+
+                    <!-- User Card -->
+                    <div class="user-card">
+                        <h3>👤 用戶資訊</h3>
+                        <div class="user-info-grid">
+                            <div class="info-item">
+                                <div class="info-label">用戶 ID (UUID)</div>
+                                <div class="info-value" id="userId"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">用戶名</div>
+                                <div class="info-value" id="usernameCard"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">註冊時間</div>
+                                <div class="info-value" id="createdAt"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Token Section -->
+                    <div class="token-section">
+                        <h3>🔑 JWT 認證令牌</h3>
+                        <div class="token-display" id="tokenDisplay"></div>
+                        <button class="btn btn-copy" id="copyTokenBtn">複製令牌</button>
+                        <p style="margin-top: 12px; color: var(--text-secondary); font-size: 12px;">
+                            此令牌用於訪問受保護的 API 端點。請妥善保管，不要分享給他人。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker A - Todo List 系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="app-container">
+            <!-- Header -->
+            <div class="header">
+                <h1>📝 Worker A Todo List 系統</h1>
+                <div class="user-info" id="headerUserInfo" style="display: none;">
+                    <span class="user-badge" id="headerUsername"></span>
+                    <button class="btn btn-logout" id="logoutBtn">登出</button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Alert Container -->
+                <div id="alertContainer"></div>
+
+                <!-- Login View -->
+                <div id="loginView" class="auth-container">
+                    <div class="auth-form">
+                        <h2 class="form-title">歡迎回來</h2>
+                        <p class="form-subtitle">請登錄您的帳戶</p>
+
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label for="loginUsername" class="form-label">用戶名</label>
+                                <input
+                                    type="text"
+                                    id="loginUsername"
+                                    class="form-input"
+                                    placeholder="請輸入用戶名"
+                                    required
+                                    autocomplete="username"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="loginPassword" class="form-label">密碼</label>
+                                <input
+                                    type="password"
+                                    id="loginPassword"
+                                    class="form-input"
+                                    placeholder="請輸入密碼"
+                                    required
+                                    autocomplete="current-password"
+                                >
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">登錄</button>
+                        </form>
+
+                        <div class="form-toggle">
+                            還沒有帳戶？ <a href="#" id="showRegister">立即註冊</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Register View -->
+                <div id="registerView" class="auth-container hidden">
+                    <div class="auth-form">
+                        <h2 class="form-title">創建新帳戶</h2>
+                        <p class="form-subtitle">註冊以開始使用</p>
+
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <label for="registerUsername" class="form-label">用戶名</label>
+                                <input
+                                    type="text"
+                                    id="registerUsername"
+                                    class="form-input"
+                                    placeholder="請輸入用戶名（3-50 字符）"
+                                    required
+                                    minlength="3"
+                                    maxlength="50"
+                                    autocomplete="username"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerPassword" class="form-label">密碼</label>
+                                <input
+                                    type="password"
+                                    id="registerPassword"
+                                    class="form-input"
+                                    placeholder="請輸入密碼（6-100 字符）"
+                                    required
+                                    minlength="6"
+                                    maxlength="100"
+                                    autocomplete="new-password"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerConfirmPassword" class="form-label">確認密碼</label>
+                                <input
+                                    type="password"
+                                    id="registerConfirmPassword"
+                                    class="form-input"
+                                    placeholder="請再次輸入密碼"
+                                    required
+                                    autocomplete="new-password"
+                                >
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">註冊</button>
+                        </form>
+
+                        <div class="form-toggle">
+                            已有帳戶？ <a href="#" id="showLogin">立即登錄</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard View -->
+                <div id="dashboardView" class="dashboard hidden">
+                    <div class="dashboard-header">
+                        <h2 class="dashboard-title">歡迎，<span id="dashboardUsername"></span>！</h2>
+                        <p class="dashboard-subtitle">管理您的待辦事項</p>
+                    </div>
+
+                    <!-- Todo Section -->
+                    <div class="todo-section">
+                        <h3>➕ 創建新待辦事項</h3>
+                        <form id="todoForm" class="todo-form">
+                            <textarea
+                                id="todoContent"
+                                class="form-input"
+                                placeholder="輸入待辦事項內容..."
+                                required
+                                rows="2"
+                            ></textarea>
+                            <button type="submit" class="btn btn-primary">添加</button>
+                        </form>
+
+                        <div class="todos-header">
+                            <h3>📋 我的待辦事項</h3>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span class="todos-count" id="todosCount">0 項</span>
+                                <button class="btn btn-refresh" id="refreshTodosBtn">刷新</button>
+                            </div>
+                        </div>
+
+                        <div id="todosList" class="todos-list">
+                            <!-- 待辦事項列表將在這裡動態生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
