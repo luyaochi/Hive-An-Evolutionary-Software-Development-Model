@@ -1,21 +1,23 @@
 """
-JWT token manager implementation.
+JWT token manager implementation for Worker A.
 
-This implements 方案 B1: 無狀態令牌 (stateless tokens) using JWT.
+This implementation follows worker_b_src pattern:
+- JWT tokens for stateless authentication
+- Configurable expiration time
+- User ID (UUID) and username in token payload
 """
 
 import jwt
-import time
-from typing import Optional
+from typing import Optional, Dict
 from datetime import datetime, timedelta
 
 
 class JWTTokenManager:
     """
     JWT-based token manager for stateless authentication.
-
-    This implementation provides:
-    - Stateless token generation
+    
+    This implementation follows worker_b_src pattern:
+    - Stateless token generation with UUID and username
     - Token verification
     - No server-side session storage required
     - Suitable for distributed systems
@@ -33,12 +35,13 @@ class JWTTokenManager:
         self.expires_in_hours = expires_in_hours
         self.algorithm = 'HS256'
 
-    def generate_token(self, username: str) -> str:
+    def generate_token(self, user_id: str, username: str) -> str:
         """
         Generate a JWT token for a user.
 
         Args:
-            username: Username to encode in token
+            user_id: User UUID
+            username: Username
 
         Returns:
             JWT token string
@@ -47,6 +50,7 @@ class JWTTokenManager:
         expiration = now + timedelta(hours=self.expires_in_hours)
 
         payload = {
+            'user_id': user_id,
             'username': username,
             'iat': now,
             'exp': expiration
@@ -55,15 +59,15 @@ class JWTTokenManager:
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
         return token
 
-    def verify_token(self, token: str) -> Optional[str]:
+    def verify_token(self, token: str) -> Optional[Dict[str, str]]:
         """
-        Verify and extract username from a JWT token.
+        Verify and extract user information from a JWT token.
 
         Args:
             token: JWT token string to verify
 
         Returns:
-            Username if token is valid, None otherwise
+            Dictionary with 'user_id' and 'username' if token is valid, None otherwise
         """
         try:
             payload = jwt.decode(
@@ -71,7 +75,10 @@ class JWTTokenManager:
                 self.secret_key,
                 algorithms=[self.algorithm]
             )
-            return payload.get('username')
+            return {
+                'user_id': payload.get('user_id'),
+                'username': payload.get('username')
+            }
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidTokenError:

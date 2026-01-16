@@ -1,29 +1,47 @@
 """
-JSON file-based todo storage implementation.
+File-based todo storage implementation for Worker A.
 
-This implements 方案 C2: JSON 檔案持久化 (JSON file persistence).
+This implementation provides:
+- JSON file format for data persistence
+- UUID as todo identifier
+- User association via user_id (UUID)
+- Create and list operations
 """
 
 import json
 import os
 import uuid
-from typing import List, Dict, Optional
+from typing import Optional, Dict, List
 from datetime import datetime
 
 
-class JSONTodoStorage:
+class FileBasedTodoStorage:
     """
-    JSON file-based todo storage.
-
+    File-based todo storage using JSON files with UUID identifiers.
+    
     This implementation provides:
-    - Persistent todo item storage
-    - Read/write todo data
+    - Persistent todo data storage in JSON format
+    - UUID-based todo identification
     - User association via user_id
+    - Create and list todo items
+    - No update or delete operations
+
+    Storage format:
+    {
+        "todos": [
+            {
+                "id": "uuid",
+                "content": "string",
+                "user_id": "uuid",
+                "created_at": "ISO 8601 string"
+            }
+        ]
+    }
     """
 
-    def __init__(self, storage_file: str = "todos.json"):
+    def __init__(self, storage_file: str = "todos_a.json"):
         """
-        Initialize JSON todo storage.
+        Initialize file-based todo storage.
 
         Args:
             storage_file: Path to the JSON file for storing todos
@@ -35,75 +53,102 @@ class JSONTodoStorage:
         """Ensure the storage file exists, create if not."""
         if not os.path.exists(self.storage_file):
             with open(self.storage_file, 'w', encoding='utf-8') as f:
-                json.dump([], f)
+                json.dump({"todos": []}, f)
 
-    def _load_todos(self) -> List[Dict]:
+    def _load_todos(self) -> Dict:
         """Load todos from storage file."""
         try:
             with open(self.storage_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                # Ensure "todos" key exists
+                if "todos" not in data:
+                    data["todos"] = []
+                return data
         except (FileNotFoundError, json.JSONDecodeError):
-            return []
+            return {"todos": []}
 
-    def _save_todos(self, todos: List[Dict]):
+    def _save_todos(self, data: Dict):
         """Save todos to storage file."""
         with open(self.storage_file, 'w', encoding='utf-8') as f:
-            json.dump(todos, f, indent=2, ensure_ascii=False)
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
-    def create_todo(self, user_id: str, content: str) -> Dict:
+    def create_todo(self, content: str, user_id: str) -> Optional[Dict]:
         """
-        Create a new todo item.
+        Create a new todo item for a user.
 
         Args:
-            user_id: Username of the authenticated user
-            content: Todo item content
+            content: Todo content/description
+            user_id: User UUID who owns this todo
 
         Returns:
-            Created todo item dictionary
+            Todo dictionary if creation successful, None otherwise
         """
-        todos = self._load_todos()
+        data = self._load_todos()
+        todos = data.get("todos", [])
 
+        # Generate UUID for todo
         todo_id = str(uuid.uuid4())
-        timestamp = datetime.utcnow().isoformat()
 
+        # Create todo entry
         todo = {
             'id': todo_id,
-            'user_id': user_id,
             'content': content,
-            'created_at': timestamp
+            'user_id': user_id,
+            'created_at': datetime.utcnow().isoformat()
         }
 
         todos.append(todo)
-        self._save_todos(todos)
+        data["todos"] = todos
+        self._save_todos(data)
 
         return todo
 
-    def list_todos(self, user_id: str) -> List[Dict]:
+    def get_todos_by_user_id(self, user_id: str) -> List[Dict]:
         """
-        List all todos for a specific user.
+        Get all todos for a specific user.
 
         Args:
-            user_id: Username to filter todos
+            user_id: User UUID to filter todos
 
         Returns:
-            List of todo items for the user
+            List of todo dictionaries for the user
         """
-        todos = self._load_todos()
-        return [todo for todo in todos if todo.get('user_id') == user_id]
+        data = self._load_todos()
+        todos = data.get("todos", [])
 
-    def get_todo(self, todo_id: str, user_id: str) -> Optional[Dict]:
+        # Filter todos by user_id
+        user_todos = [todo for todo in todos if todo.get('user_id') == user_id]
+
+        # Sort by created_at (newest first)
+        user_todos.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+        return user_todos
+
+    def get_todo_by_id(self, todo_id: str) -> Optional[Dict]:
         """
-        Get a specific todo item by ID (if it belongs to the user).
+        Get a todo by ID.
 
         Args:
-            todo_id: Todo item ID
-            user_id: Username to verify ownership
+            todo_id: Todo UUID to look up
 
         Returns:
-            Todo item if found and belongs to user, None otherwise
+            Todo dictionary if found, None otherwise
         """
-        todos = self._load_todos()
+        data = self._load_todos()
+        todos = data.get("todos", [])
+
         for todo in todos:
-            if todo.get('id') == todo_id and todo.get('user_id') == user_id:
+            if todo.get('id') == todo_id:
                 return todo
+
         return None
+
+    def get_all_todos(self) -> List[Dict]:
+        """
+        Get all todos (for debugging purposes).
+
+        Returns:
+            List of all todo dictionaries
+        """
+        data = self._load_todos()
+        return data.get("todos", [])

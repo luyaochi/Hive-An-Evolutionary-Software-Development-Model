@@ -1,13 +1,46 @@
 /**
- * Worker A GUI 主應用程式
- * 處理用戶界面邏輯和狀態管理，包含認證和待辦事項管理
+ * Worker A GUI Application
+ * 主應用邏輯，管理狀態和 UI 控制
  */
 
 class WorkerAApp {
     constructor() {
-        this.currentView = 'login'; // 'login', 'register', 'dashboard'
+        this.currentView = 'login';
         this.currentUser = null;
         this.todos = [];
+        
+        // DOM 元素引用
+        this.elements = {
+            // Views
+            loginView: document.getElementById('login-view'),
+            dashboardView: document.getElementById('dashboard-view'),
+            
+            // Login form
+            loginForm: document.getElementById('login-form'),
+            loginUsername: document.getElementById('login-username'),
+            loginPassword: document.getElementById('login-password'),
+            loginBtn: document.getElementById('login-btn'),
+            
+            // User info
+            userInfo: document.getElementById('user-info'),
+            usernameDisplay: document.getElementById('username-display'),
+            logoutBtn: document.getElementById('logout-btn'),
+            
+            // Todo form
+            addTodoForm: document.getElementById('add-todo-form'),
+            todoContent: document.getElementById('todo-content'),
+            addTodoBtn: document.getElementById('add-todo-btn'),
+            charCount: document.getElementById('char-count'),
+            
+            // Todos list
+            todosList: document.getElementById('todos-list'),
+            emptyState: document.getElementById('empty-state'),
+            refreshTodosBtn: document.getElementById('refresh-todos-btn'),
+            
+            // Alert container
+            alertContainer: document.getElementById('alert-container')
+        };
+
         this.init();
     }
 
@@ -15,179 +48,48 @@ class WorkerAApp {
      * 初始化應用
      */
     async init() {
-        // 檢查是否已有登錄令牌
-        const token = api.getToken();
-        if (token) {
-            try {
-                const backendType = api.getBackendType();
+        // 綁定事件監聽器
+        this.bindEvents();
 
-                if (backendType === 'worker_a') {
-                    // Worker A: 嘗試獲取待辦事項來驗證令牌
-                    const todosData = await api.getTodos();
-                    if (todosData && todosData.todos !== undefined) {
-                        this.todos = todosData.todos;
-                        // 從第一個待辦事項獲取用戶名（如果有的話）
-                        if (this.todos.length > 0) {
-                            this.currentUser = this.todos[0].user_id;
-                        }
-                        this.showDashboard();
-                        return;
-                    }
-                } else if (backendType === 'worker_b') {
-                    // Worker B: 嘗試獲取用戶資訊來驗證令牌
-                    const userData = await api.getCurrentUser();
-                    if (userData && userData.user) {
-                        this.currentUser = userData.user.username;
-                        this.showDashboard();
-                        return;
-                    }
-                }
-            } catch (error) {
-                // 令牌無效，清除並顯示登錄頁面
-                console.error('Token validation failed:', error);
-                api.clearToken();
-            }
+        // 檢查是否有有效的令牌
+        const hasValidToken = await api.verifyToken();
+        
+        if (hasValidToken) {
+            await this.loadUserInfo();
+            this.showDashboard();
+        } else {
+            this.showLogin();
         }
 
-        this.showLogin();
-        this.setupEventListeners();
+        // 監聽字符計數
+        this.elements.todoContent.addEventListener('input', () => {
+            this.updateCharCount();
+        });
     }
 
     /**
-     * 設置事件監聽器
+     * 綁定事件監聽器
      */
-    setupEventListeners() {
+    bindEvents() {
         // 登錄表單
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => this.handleLogin(e));
-        }
-
-        // 註冊表單
-        const registerForm = document.getElementById('registerForm');
-        if (registerForm) {
-            registerForm.addEventListener('submit', (e) => this.handleRegister(e));
-        }
-
-        // 表單切換
-        const showRegisterLink = document.getElementById('showRegister');
-        if (showRegisterLink) {
-            showRegisterLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showRegister();
-            });
-        }
-
-        const showLoginLink = document.getElementById('showLogin');
-        if (showLoginLink) {
-            showLoginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showLogin();
-            });
-        }
+        this.elements.loginForm.addEventListener('submit', (e) => {
+            this.handleLogin(e);
+        });
 
         // 登出按鈕
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.handleLogout());
-        }
+        this.elements.logoutBtn.addEventListener('click', () => {
+            this.handleLogout();
+        });
 
-        // 創建待辦事項表單
-        const todoForm = document.getElementById('todoForm');
-        if (todoForm) {
-            todoForm.addEventListener('submit', (e) => this.handleCreateTodo(e));
-        }
+        // 新增待辦事項表單
+        this.elements.addTodoForm.addEventListener('submit', (e) => {
+            this.handleAddTodo(e);
+        });
 
-        // 刷新待辦事項按鈕
-        const refreshTodosBtn = document.getElementById('refreshTodosBtn');
-        if (refreshTodosBtn) {
-            refreshTodosBtn.addEventListener('click', () => this.loadTodos());
-        }
-    }
-
-    /**
-     * 顯示登錄頁面
-     */
-    showLogin() {
-        this.currentView = 'login';
-        document.getElementById('loginView').classList.remove('hidden');
-        document.getElementById('registerView').classList.add('hidden');
-        document.getElementById('dashboardView').classList.add('hidden');
-        this.clearAlerts();
-    }
-
-    /**
-     * 顯示註冊頁面
-     */
-    showRegister() {
-        this.currentView = 'register';
-        document.getElementById('loginView').classList.add('hidden');
-        document.getElementById('registerView').classList.remove('hidden');
-        document.getElementById('dashboardView').classList.add('hidden');
-        this.clearAlerts();
-    }
-
-    /**
-     * 顯示儀表板
-     */
-    async showDashboard() {
-        this.currentView = 'dashboard';
-        document.getElementById('loginView').classList.add('hidden');
-        document.getElementById('registerView').classList.add('hidden');
-        document.getElementById('dashboardView').classList.remove('hidden');
-
-        // 檢查後台類型
-        const backendType = api.getBackendType();
-        const supportsTodos = api.supportsTodos();
-
-        // 顯示/隱藏待辦事項功能（Worker B 不支持）
-        const todoSection = document.querySelector('.todo-section');
-        if (todoSection) {
-            todoSection.style.display = supportsTodos ? 'block' : 'none';
-        }
-
-        // 顯示用戶名
-        if (this.currentUser) {
-            const usernameElement = document.getElementById('dashboardUsername');
-            if (usernameElement) {
-                usernameElement.textContent = this.currentUser;
-            }
-            const headerUsername = document.getElementById('headerUsername');
-            if (headerUsername) {
-                headerUsername.textContent = this.currentUser;
-            }
-        } else {
-            // Worker B: 嘗試從 API 獲取用戶資訊
-            if (backendType === 'worker_b') {
-                try {
-                    const userData = await api.getCurrentUser();
-                    if (userData && userData.user) {
-                        this.currentUser = userData.user.username;
-                        const usernameElement = document.getElementById('dashboardUsername');
-                        if (usernameElement) {
-                            usernameElement.textContent = this.currentUser;
-                        }
-                        const headerUsername = document.getElementById('headerUsername');
-                        if (headerUsername) {
-                            headerUsername.textContent = this.currentUser;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Failed to get user info:', error);
-                }
-            }
-        }
-
-        // 顯示標題欄用戶資訊
-        const headerUserInfo = document.getElementById('headerUserInfo');
-        if (headerUserInfo) {
-            headerUserInfo.style.display = 'flex';
-        }
-
-        // 只有在 Worker A 時才載入待辦事項
-        if (supportsTodos) {
-            await this.loadTodos();
-        }
+        // 刷新待辦事項
+        this.elements.refreshTodosBtn.addEventListener('click', () => {
+            this.loadTodos();
+        });
     }
 
     /**
@@ -195,110 +97,35 @@ class WorkerAApp {
      */
     async handleLogin(e) {
         e.preventDefault();
-        this.clearAlerts();
-
-        const username = document.getElementById('loginUsername').value.trim();
-        const password = document.getElementById('loginPassword').value;
+        
+        const username = this.elements.loginUsername.value.trim();
+        const password = this.elements.loginPassword.value;
 
         if (!username || !password) {
             this.showAlert('請輸入用戶名和密碼', 'error');
             return;
         }
 
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        this.setLoading(submitBtn, true);
+        // 設置按鈕加載狀態
+        this.setButtonLoading(this.elements.loginBtn, true);
 
         try {
             const response = await api.login(username, password);
+            
+            this.currentUser = response.user;
+            this.showAlert('登錄成功！', 'success');
+            
+            // 延遲切換視圖以顯示成功訊息
+            setTimeout(async () => {
+                await this.loadUserInfo();
+                await this.loadTodos();
+                this.showDashboard();
+            }, 500);
 
-            if (response.token) {
-                // 已由 api.login() 設置 token
-                // Worker B 返回 user 對象，Worker A 只有 token
-                if (response.user) {
-                    // Worker B 格式
-                    this.currentUser = response.user.username;
-                } else {
-                    // Worker A 格式
-                    this.currentUser = username;
-                }
-
-                this.showAlert('登錄成功！', 'success');
-
-                // 延遲顯示儀表板，讓用戶看到成功訊息
-                setTimeout(() => {
-                    this.showDashboard();
-                }, 1000);
-            }
         } catch (error) {
             this.showAlert(error.message || '登錄失敗，請檢查用戶名和密碼', 'error');
         } finally {
-            this.setLoading(submitBtn, false);
-        }
-    }
-
-    /**
-     * 處理註冊
-     */
-    async handleRegister(e) {
-        e.preventDefault();
-        this.clearAlerts();
-
-        const username = document.getElementById('registerUsername').value.trim();
-        const password = document.getElementById('registerPassword').value;
-        const confirmPassword = document.getElementById('registerConfirmPassword').value;
-
-        // 驗證輸入
-        if (!username || !password) {
-            this.showAlert('請輸入用戶名和密碼', 'error');
-            return;
-        }
-
-        if (username.length < 3 || username.length > 50) {
-            this.showAlert('用戶名長度必須在 3-50 字符之間', 'error');
-            return;
-        }
-
-        if (password.length < 6 || password.length > 100) {
-            this.showAlert('密碼長度必須在 6-100 字符之間', 'error');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            this.showAlert('兩次輸入的密碼不一致', 'error');
-            return;
-        }
-
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        this.setLoading(submitBtn, true);
-
-        try {
-            const response = await api.register(username, password);
-
-            // Worker B 註冊後直接返回 token，可以直接登錄
-            if (response.token) {
-                // Worker B 格式：已自動設置 token
-                this.currentUser = response.user ? response.user.username : username;
-                this.showAlert('註冊成功！', 'success');
-
-                // 延遲顯示儀表板
-                setTimeout(() => {
-                    this.showDashboard();
-                }, 1000);
-            } else {
-                // Worker A 格式：只有成功訊息，需要登錄
-                this.showAlert('註冊成功！請登錄', 'success');
-
-                // 延遲顯示登錄頁面
-                setTimeout(() => {
-                    this.showLogin();
-                    // 預填用戶名
-                    document.getElementById('loginUsername').value = username;
-                }, 1500);
-            }
-        } catch (error) {
-            this.showAlert(error.message || '註冊失敗，用戶名可能已存在', 'error');
-        } finally {
-            this.setLoading(submitBtn, false);
+            this.setButtonLoading(this.elements.loginBtn, false);
         }
     }
 
@@ -309,55 +136,77 @@ class WorkerAApp {
         api.clearToken();
         this.currentUser = null;
         this.todos = [];
+        
+        // 清空表單
+        this.elements.loginForm.reset();
+        this.elements.addTodoForm.reset();
+        
         this.showLogin();
         this.showAlert('已成功登出', 'info');
     }
 
     /**
-     * 載入待辦事項
+     * 處理新增待辦事項
      */
-    async loadTodos() {
-        try {
-            const todosData = await api.getTodos();
-            if (todosData && todosData.todos) {
-                this.todos = todosData.todos;
-                this.renderTodos();
-            }
-        } catch (error) {
-            console.error('Failed to load todos:', error);
-            this.showAlert('無法載入待辦事項', 'error');
-        }
-    }
-
-    /**
-     * 處理創建待辦事項
-     */
-    async handleCreateTodo(e) {
+    async handleAddTodo(e) {
         e.preventDefault();
-        this.clearAlerts();
-
-        const contentInput = document.getElementById('todoContent');
-        const content = contentInput.value.trim();
+        
+        const content = this.elements.todoContent.value.trim();
 
         if (!content) {
             this.showAlert('請輸入待辦事項內容', 'error');
             return;
         }
 
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        this.setLoading(submitBtn, true);
+        if (content.length > 1000) {
+            this.showAlert('待辦事項內容不能超過 1000 字符', 'error');
+            return;
+        }
+
+        // 設置按鈕加載狀態
+        this.setButtonLoading(this.elements.addTodoBtn, true);
 
         try {
-            const newTodo = await api.createTodo(content);
-            this.showAlert('待辦事項創建成功！', 'success');
-            contentInput.value = '';
-
+            const response = await api.createTodo(content);
+            
+            this.showAlert('待辦事項新增成功！', 'success');
+            this.elements.todoContent.value = '';
+            this.updateCharCount();
+            
             // 重新載入待辦事項列表
             await this.loadTodos();
+
         } catch (error) {
-            this.showAlert(error.message || '創建待辦事項失敗', 'error');
+            this.showAlert(error.message || '新增待辦事項失敗', 'error');
         } finally {
-            this.setLoading(submitBtn, false);
+            this.setButtonLoading(this.elements.addTodoBtn, false);
+        }
+    }
+
+    /**
+     * 載入用戶資訊
+     */
+    async loadUserInfo() {
+        try {
+            const response = await api.getCurrentUser();
+            this.currentUser = response.user;
+            this.elements.usernameDisplay.textContent = this.currentUser.username;
+        } catch (error) {
+            console.error('Failed to load user info:', error);
+            this.handleLogout();
+        }
+    }
+
+    /**
+     * 載入待辦事項列表
+     */
+    async loadTodos() {
+        try {
+            this.todos = await api.listTodos();
+            this.renderTodos();
+        } catch (error) {
+            this.showAlert(error.message || '載入待辦事項失敗', 'error');
+            console.error('Failed to load todos:', error);
         }
     }
 
@@ -365,110 +214,142 @@ class WorkerAApp {
      * 渲染待辦事項列表
      */
     renderTodos() {
-        const todosContainer = document.getElementById('todosList');
-        if (!todosContainer) return;
+        const { todosList, emptyState } = this.elements;
 
-        // 更新計數
-        const todosCount = document.getElementById('todosCount');
-        if (todosCount) {
-            todosCount.textContent = `${this.todos.length} 項`;
-        }
+        // 清空列表
+        todosList.innerHTML = '';
 
         if (this.todos.length === 0) {
-            todosContainer.innerHTML = `
-                <div class="empty-state">
-                    <p>📝 還沒有待辦事項</p>
-                    <p class="empty-hint">創建您的第一個待辦事項吧！</p>
-                </div>
-            `;
-            return;
+            emptyState.style.display = 'block';
+            todosList.style.display = 'none';
+        } else {
+            emptyState.style.display = 'none';
+            todosList.style.display = 'block';
+
+            // 渲染每個待辦事項
+            this.todos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = 'todo-item';
+                
+                const content = document.createElement('div');
+                content.className = 'todo-content';
+                content.textContent = todo.content;
+                
+                const meta = document.createElement('div');
+                meta.className = 'todo-meta';
+                
+                const id = document.createElement('span');
+                id.className = 'todo-id';
+                id.textContent = `ID: ${todo.id.substring(0, 8)}...`;
+                
+                const date = document.createElement('span');
+                date.className = 'todo-date';
+                date.textContent = this.formatDate(todo.created_at);
+                
+                meta.appendChild(id);
+                meta.appendChild(date);
+                
+                li.appendChild(content);
+                li.appendChild(meta);
+                
+                todosList.appendChild(li);
+            });
         }
-
-        // 按創建時間倒序排列
-        const sortedTodos = [...this.todos].sort((a, b) => {
-            return new Date(b.created_at) - new Date(a.created_at);
-        });
-
-        todosContainer.innerHTML = sortedTodos.map(todo => {
-            const date = new Date(todo.created_at);
-            const formattedDate = date.toLocaleString('zh-TW');
-
-            return `
-                <div class="todo-item">
-                    <div class="todo-content">
-                        <p class="todo-text">${this.escapeHtml(todo.content)}</p>
-                        <span class="todo-date">${formattedDate}</span>
-                    </div>
-                    <div class="todo-id">ID: ${todo.id.substring(0, 8)}...</div>
-                </div>
-            `;
-        }).join('');
     }
 
     /**
-     * HTML 轉義，防止 XSS
+     * 格式化日期
      */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+
+    /**
+     * 更新字符計數
+     */
+    updateCharCount() {
+        const length = this.elements.todoContent.value.length;
+        this.elements.charCount.textContent = `${length}/1000`;
+    }
+
+    /**
+     * 顯示登錄頁面
+     */
+    showLogin() {
+        this.currentView = 'login';
+        this.elements.loginView.style.display = 'block';
+        this.elements.dashboardView.style.display = 'none';
+        this.elements.userInfo.style.display = 'none';
+    }
+
+    /**
+     * 顯示儀表板（待辦事項管理）
+     */
+    async showDashboard() {
+        this.currentView = 'dashboard';
+        this.elements.loginView.style.display = 'none';
+        this.elements.dashboardView.style.display = 'block';
+        this.elements.userInfo.style.display = 'flex';
+        
+        // 確保已載入待辦事項
+        if (this.todos.length === 0) {
+            await this.loadTodos();
+        }
     }
 
     /**
      * 顯示提示訊息
      */
     showAlert(message, type = 'info') {
-        this.clearAlerts();
-
-        const alertContainer = document.getElementById('alertContainer');
-        if (!alertContainer) return;
-
         const alert = document.createElement('div');
         alert.className = `alert alert-${type}`;
-        alert.textContent = message;
-
-        alertContainer.appendChild(alert);
-
-        // 3 秒後自動清除
-        setTimeout(() => {
+        
+        const messageSpan = document.createElement('span');
+        messageSpan.textContent = message;
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'alert-close';
+        closeBtn.textContent = '×';
+        closeBtn.addEventListener('click', () => {
             alert.remove();
-        }, 3000);
-    }
-
-    /**
-     * 清除所有提示訊息
-     */
-    clearAlerts() {
-        const alertContainer = document.getElementById('alertContainer');
-        if (alertContainer) {
-            alertContainer.innerHTML = '';
-        }
+        });
+        
+        alert.appendChild(messageSpan);
+        alert.appendChild(closeBtn);
+        
+        this.elements.alertContainer.appendChild(alert);
+        
+        // 自動移除（成功訊息 3 秒，錯誤訊息 5 秒）
+        const timeout = type === 'success' ? 3000 : 5000;
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, timeout);
     }
 
     /**
      * 設置按鈕加載狀態
      */
-    setLoading(button, loading) {
-        if (!button) return;
-
+    setButtonLoading(button, loading) {
         if (loading) {
+            button.classList.add('loading');
             button.disabled = true;
-            button.innerHTML = '<span class="spinner"></span> 處理中...';
         } else {
+            button.classList.remove('loading');
             button.disabled = false;
-            // 恢復原始文本
-            if (button.closest('#loginForm')) {
-                button.innerHTML = '登錄';
-            } else if (button.closest('#registerForm')) {
-                button.innerHTML = '註冊';
-            } else if (button.closest('#todoForm')) {
-                button.innerHTML = '添加';
-            }
         }
     }
 }
 
-// 當頁面加載完成時初始化應用
+// 當 DOM 加載完成後初始化應用
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new WorkerAApp();
 });

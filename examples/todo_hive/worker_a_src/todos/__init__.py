@@ -1,11 +1,14 @@
 """
-Todo list management domain module.
+Todo management module for Worker A.
 
-This module implements todo list management using:
-- JSON file persistence (方案 C2)
+This module provides todo list management functionality:
+- Create todo items
+- List todo items
+- JSON file persistence
+- Association with authenticated users
 """
 
-from .todo_storage import JSONTodoStorage
+from .todo_storage import FileBasedTodoStorage
 from .todo_service import TodoService
 
-__all__ = ['JSONTodoStorage', 'TodoService']
+__all__ = ['FileBasedTodoStorage', 'TodoService']
